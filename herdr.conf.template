@@ -1,7 +1,9 @@
-# Herdr.app 専用の Ghostty 設定（ビルド時に @HERDR_BIN@ が実際のパスに置換される）。
+# Herdr.app 専用の Ghostty 設定。
 # -e フラグだと毎回セキュリティ確認ダイアログが出る（Ghostty 1.3 の仕様、無効化不可）ため、
-# 信頼される「設定ファイル由来の command」として herdr を起動する。
-command = @HERDR_BIN@
+# 信頼される「設定ファイル由来の command」として起動する。
+# 直接 herdr ではなくセッションループ（herdr-session.sh）を挟むことで、
+# デタッチしてもウィンドウが落ちず、再アタッチ／セッション切替ができる。
+command = /Applications/Herdr.app/Contents/Resources/herdr-session.sh
 macos-icon = custom
 macos-custom-icon = /Applications/Herdr.app/Contents/Resources/herdr-icon.png
 quit-after-last-window-closed = true

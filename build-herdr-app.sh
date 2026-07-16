@@ -40,12 +40,21 @@ fi
 # アイコンがなければ公式ロゴから生成
 [[ -f "$HERE/herdr.icns" && -f "$HERE/herdr-icon.png" ]] || "$HERE/generate-icons.sh"
 
+# デタッチ後もウィンドウを保ち、再アタッチ／セッション切替を可能にするループを配置
+install_session_script() {
+  sed "s|@HERDR_BIN@|$HERDR_BIN|" "$HERE/herdr-session.sh.template" \
+    > "$APP/Contents/Resources/herdr-session.sh"
+  chmod +x "$APP/Contents/Resources/herdr-session.sh"
+}
+SESSION_SH=/Applications/Herdr.app/Contents/Resources/herdr-session.sh
+
 # ---- 軽量ランチャー共通部（iterm2 / wezterm / terminal）----
 build_light_bundle() {
   local launcher_body="$1"
   rm -rf "$APP"
   mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
   cp "$HERE/herdr.icns" "$APP/Contents/Resources/herdr.icns"
+  install_session_script
   cat > "$APP/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -92,6 +101,7 @@ ghostty)
   cp "$HERE/herdr.icns" "$APP/Contents/Resources/herdr.icns"
   cp "$HERE/herdr-icon.png" "$APP/Contents/Resources/herdr-icon.png"
   sed "s|@HERDR_BIN@|$HERDR_BIN|" "$HERE/herdr.conf.template" > "$APP/Contents/Resources/herdr.conf"
+  install_session_script
 
   # 本家バイナリのスタンプ（サイズ+更新時刻）と、自動リビルド用に自分のパスを記録。
   # 起動スタブがこれを見て「Ghostty 更新後の初回起動時に自動で作り直し」を行う。
@@ -117,7 +127,7 @@ fi
 exec osascript \\
   -e 'tell application \"iTerm\"' \\
   -e '  activate' \\
-  -e '  create window with default profile command \"${HERDR_BIN}\"' \\
+  -e '  create window with default profile command \"${SESSION_SH}\"' \\
   -e 'end tell'"
   ;;
 
@@ -129,7 +139,7 @@ wezterm)
 if pgrep -f \"wezterm-gui.*start.*herdr\" >/dev/null; then
   exec osascript -e 'tell application \"WezTerm\" to activate'
 fi
-exec open -na /Applications/WezTerm.app --args start -- ${HERDR_BIN}"
+exec open -na /Applications/WezTerm.app --args start -- ${SESSION_SH}"
   ;;
 
 terminal)
@@ -141,7 +151,7 @@ if pgrep -f \"${HERDR_BIN}\$\" >/dev/null; then
 fi
 exec osascript \\
   -e 'tell application \"Terminal\"' \\
-  -e '  do script \"exec ${HERDR_BIN}\"' \\
+  -e '  do script \"exec ${SESSION_SH}\"' \\
   -e '  activate' \\
   -e 'end tell'"
   ;;

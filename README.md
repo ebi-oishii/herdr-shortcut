@@ -13,6 +13,7 @@ herdr は「a binary, not an app」という思想のターミナルツールで
 - **Dock クリックで herdr が開く**（公式ロゴの角丸アイコン）
 - 普段使いのターミナル（Ghostty 等）の Dock アイコン・ピン留め・挙動には**一切影響しない**
 - ウィンドウを閉じてもセッションは `herdr server` に残り、次のクリックで復帰（Slack 的な常駐アプリ感覚）
+- **デタッチ（`ctrl+b q`）してもウィンドウは落ちない** — その場にセッションメニューが出て、再アタッチ（`r`）・別セッションへの切替・新規セッション作成（名前を入力）・ウィンドウを閉じる（Enter）を選べる
 - 確認ダイアログなし・余計なタブなし・二重起動なし
 
 ## 必要なもの
@@ -60,6 +61,7 @@ herdr が PATH 外にある場合は `HERDR_BIN=/path/to/herdr ./build-herdr-app
 3. **Info.plist を書き換えると内部バイナリの署名が無効になる**（Mach-O 署名は plist のハッシュを内包）→ ghostty 本体も ad-hoc で再署名
 4. **署名付きバンドルのメイン実行ファイルがシェルスクリプトだと launchd がスポーン拒否**（error 162）→ C の小さな Mach-O スタブで exec
 5. **Ghostty はカスタム Dock アイコンを defaults（`CustomGhosttyIcon2`）に永続化する** — Dock タイルは `NSDockTilePlugIn` が描画するため、アイコンがおかしくなったら `defaults delete <bundle-id> CustomGhosttyIcon2 && killall Dock`
+6. **herdr はデタッチするとクライアントプロセスが終了する** — そのままではウィンドウごと閉じてしまうため、`command` には herdr 直接ではなくセッションループ（`herdr-session.sh`）を渡し、終了後にメニューを出して再アタッチ・セッション切替できるようにしている
 
 ## 注意
 

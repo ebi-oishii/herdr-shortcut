@@ -1,0 +1,36 @@
+#!/bin/zsh
+# Herdr.app のセッションループ（ビルド時に @HERDR_BIN@ が実際のパスに置換される）。
+#
+# herdr はデタッチ（ctrl+b q）するとクライアントプロセスが終了するため、
+# そのままだとウィンドウごと閉じてしまう。このスクリプトは herdr の終了後に
+# セッション選択メニューを出し、ウィンドウを「セッションの入り口」として保つ。
+#   Enter          → ウィンドウを閉じる
+#   r              → 同じセッションに再アタッチ
+#   <セッション名>  → そのセッションにアタッチ（なければ新規作成）
+HERDR=@HERDR_BIN@
+
+session=""  # 空 = デフォルトセッション
+while true; do
+  if [[ -z "$session" ]]; then
+    "$HERDR"
+  else
+    "$HERDR" --session "$session"
+  fi
+
+  # ここに来るのはデタッチまたは herdr 終了時
+  print ""
+  print -P "%F{green}── herdr からデタッチしました（セッションはサーバに残っています）──%f"
+  print ""
+  "$HERDR" session list 2>/dev/null || print "(セッション一覧を取得できませんでした)"
+  print ""
+  print -P "%B[Enter]%b 閉じる   %B[r]%b 再アタッチ   %B[セッション名]%b そのセッションへ（なければ新規作成）"
+  if ! read -r "choice?herdr > "; then
+    exit 0  # EOF（ウィンドウが閉じられた等）
+  fi
+  case "$choice" in
+    "") exit 0 ;;
+    r|R) ;;  # 同じセッションに再アタッチ
+    default) session="" ;;
+    *) session="$choice" ;;
+  esac
+done
