@@ -4,6 +4,8 @@
 
 One-click macOS launcher generator for [herdr](https://herdr.dev) — open your herd like a desktop app.
 
+> **汎用版あり**: herdr に限らず任意の TUI/CLI をアプリ化する [tui2app](https://github.com/ebi-oishii/tui2app) をこのプロジェクトから切り出しました。
+
 <img src="https://herdr.dev/assets/logo.png" width="96" alt="herdr logo (© herdr project)">
 
 ## これは何？
