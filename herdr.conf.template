@@ -5,8 +5,8 @@
 # デタッチしてもウィンドウが落ちず、再アタッチ／セッション切替ができる。
 command = /Applications/Herdr.app/Contents/Resources/herdr-session.sh
 # herdr はウィンドウタイトルを設定しないため、Ghostty デフォルトの「👻」が
-# タイトルバーに出てしまう。アプリ名に固定する
-title = Herdr
+# タイトルバーに出てしまう。公式ロゴに合わせて羊に固定する
+title = 🐏
 macos-icon = custom
 macos-custom-icon = /Applications/Herdr.app/Contents/Resources/herdr-icon.png
 quit-after-last-window-closed = true
