@@ -121,7 +121,7 @@ iterm2)
   echo "==> iTerm2 用の軽量ランチャーを作成"
   build_light_bundle "#!/bin/zsh
 # 既に herdr クライアントが動いていれば iTerm を前面に出すだけ
-if pgrep -f \"${HERDR_BIN}\$\" >/dev/null; then
+if pgrep -f \"Herdr.app/Contents/Resources/herdr-session.sh\" >/dev/null; then
   exec osascript -e 'tell application \"iTerm\" to activate'
 fi
 exec osascript \\
@@ -136,7 +136,7 @@ wezterm)
   echo "==> WezTerm 用の軽量ランチャーを作成"
   build_light_bundle "#!/bin/zsh
 # 既に herdr 用 WezTerm が動いていれば前面に出すだけ
-if pgrep -f \"wezterm-gui.*start.*herdr\" >/dev/null; then
+if pgrep -f \"Herdr.app/Contents/Resources/herdr-session.sh\" >/dev/null; then
   exec osascript -e 'tell application \"WezTerm\" to activate'
 fi
 exec open -na /Applications/WezTerm.app --args start -- ${SESSION_SH}"
@@ -146,7 +146,7 @@ terminal)
   echo "==> macOS 標準ターミナル用の軽量ランチャーを作成"
   build_light_bundle "#!/bin/zsh
 # 既に herdr クライアントが動いていればターミナルを前面に出すだけ
-if pgrep -f \"${HERDR_BIN}\$\" >/dev/null; then
+if pgrep -f \"Herdr.app/Contents/Resources/herdr-session.sh\" >/dev/null; then
   exec osascript -e 'tell application \"Terminal\" to activate'
 fi
 exec osascript \\

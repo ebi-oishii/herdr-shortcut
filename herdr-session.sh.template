@@ -17,8 +17,12 @@ while true; do
     "$HERDR" --session "$session"
   fi
 
-  # ここに来るのはデタッチまたは herdr 終了時
-  print ""
+  # ここに来るのはデタッチまたは herdr 終了時。
+  # TUI が残した端末状態（オルタネートスクリーン・マウスレポート・
+  # bracketed paste・カーソル非表示等）をリセットしてからメニューを描く
+  stty sane 2>/dev/null || true
+  printf '\e[?1049l\e[?1000;1002;1003;1006l\e[?2004l\e[?25h\e[0m'
+  clear
   print -P "%F{green}── herdr からデタッチしました（セッションはサーバに残っています）──%f"
   print ""
   "$HERDR" session list 2>/dev/null || print "(セッション一覧を取得できませんでした)"
