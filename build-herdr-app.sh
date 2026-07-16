@@ -15,8 +15,10 @@
 #   ターミナル本体の更新の影響を受けない。初回クリック時に
 #   「"Herdr" が "<ターミナル>" を制御しようとしています」の許可が 1 回出る。
 set -euo pipefail
+trap '[[ -n "${STAGE:-}" && -d "$STAGE" ]] && rm -rf "$STAGE"' EXIT
 
-APP=/Applications/Herdr.app
+APP=/Applications/Herdr.app          # 最終インストール先
+STAGE="$APP.build.$$"                 # ステージング（完成後に一括で置き換え）
 BUNDLE_ID=io.github.ebi-oishii.herdr-shortcut
 HERE="${0:A:h}"
 TERMINAL=ghostty
@@ -43,19 +45,18 @@ fi
 # デタッチ後もウィンドウを保ち、再アタッチ／セッション切替を可能にするループを配置
 install_session_script() {
   sed "s|@HERDR_BIN@|$HERDR_BIN|" "$HERE/herdr-session.sh.template" \
-    > "$APP/Contents/Resources/herdr-session.sh"
-  chmod +x "$APP/Contents/Resources/herdr-session.sh"
+    > "$STAGE/Contents/Resources/herdr-session.sh"
+  chmod +x "$STAGE/Contents/Resources/herdr-session.sh"
 }
 SESSION_SH=/Applications/Herdr.app/Contents/Resources/herdr-session.sh
 
 # ---- 軽量ランチャー共通部（iterm2 / wezterm / terminal）----
 build_light_bundle() {
   local launcher_body="$1"
-  rm -rf "$APP"
-  mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-  cp "$HERE/herdr.icns" "$APP/Contents/Resources/herdr.icns"
+  mkdir -p "$STAGE/Contents/MacOS" "$STAGE/Contents/Resources"
+  cp "$HERE/herdr.icns" "$STAGE/Contents/Resources/herdr.icns"
   install_session_script
-  cat > "$APP/Contents/Info.plist" <<EOF
+  cat > "$STAGE/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -72,8 +73,8 @@ build_light_bundle() {
 </dict>
 </plist>
 EOF
-  print -r -- "$launcher_body" > "$APP/Contents/MacOS/herdr-launcher"
-  chmod +x "$APP/Contents/MacOS/herdr-launcher"
+  print -r -- "$launcher_body" > "$STAGE/Contents/MacOS/herdr-launcher"
+  chmod +x "$STAGE/Contents/MacOS/herdr-launcher"
   # 軽量版は未署名のまま（メイン実行ファイルがシェルスクリプトのため署名すると launchd に拒否される）
 }
 
@@ -85,11 +86,10 @@ ghostty)
   command -v cc >/dev/null || { echo "ERROR: cc がありません（xcode-select --install）"; exit 1 }
 
   echo "==> Ghostty.app を複製 ($(du -sh "$SRC" | cut -f1))"
-  rm -rf "$APP"
-  ditto "$SRC" "$APP"
+  ditto "$SRC" "$STAGE"
 
   echo "==> バンドル情報を Herdr 用に書き換え"
-  P="$APP/Contents/Info.plist"
+  P="$STAGE/Contents/Info.plist"
   /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$P"
   /usr/libexec/PlistBuddy -c "Set :CFBundleName Herdr" "$P"
   /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable herdr-launcher" "$P"
@@ -98,22 +98,22 @@ ghostty)
   /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Herdr" "$P" 2>/dev/null \
     || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Herdr" "$P"
 
-  cp "$HERE/herdr.icns" "$APP/Contents/Resources/herdr.icns"
-  cp "$HERE/herdr-icon.png" "$APP/Contents/Resources/herdr-icon.png"
-  sed "s|@HERDR_BIN@|$HERDR_BIN|" "$HERE/herdr.conf.template" > "$APP/Contents/Resources/herdr.conf"
+  cp "$HERE/herdr.icns" "$STAGE/Contents/Resources/herdr.icns"
+  cp "$HERE/herdr-icon.png" "$STAGE/Contents/Resources/herdr-icon.png"
+  sed "s|@HERDR_BIN@|$HERDR_BIN|" "$HERE/herdr.conf.template" > "$STAGE/Contents/Resources/herdr.conf"
   install_session_script
 
   # 本家バイナリのスタンプ（サイズ+更新時刻）と、自動リビルド用に自分のパスを記録。
   # 起動スタブがこれを見て「Ghostty 更新後の初回起動時に自動で作り直し」を行う。
-  stat -f "%z %m" "$SRC/Contents/MacOS/ghostty" > "$APP/Contents/Resources/ghostty-src.stamp"
-  echo "${0:A}" >> "$APP/Contents/Resources/ghostty-src.stamp"
+  stat -f "%z %m" "$SRC/Contents/MacOS/ghostty" > "$STAGE/Contents/Resources/ghostty-src.stamp"
+  echo "${0:A}" >> "$STAGE/Contents/Resources/ghostty-src.stamp"
 
   echo "==> 起動スタブをコンパイルして配置"
-  cc -O2 -o "$APP/Contents/MacOS/herdr-launcher" "$HERE/herdr-launcher.c"
+  cc -O2 -o "$STAGE/Contents/MacOS/herdr-launcher" "$HERE/herdr-launcher.c"
 
   echo "==> ad-hoc 再署名（Info.plist 改変で元署名が無効になるため ghostty 本体も署名し直す）"
-  codesign --force --preserve-metadata=entitlements --sign - "$APP/Contents/MacOS/ghostty" 2>&1 | grep -v "replacing existing signature" || true
-  codesign --force --sign - "$APP" 2>&1 | grep -v "replacing existing signature" || true
+  codesign --force --preserve-metadata=entitlements --sign - "$STAGE/Contents/MacOS/ghostty" 2>&1 | grep -v "replacing existing signature" || true
+  codesign --force --sign - "$STAGE" 2>&1 | grep -v "replacing existing signature" || true
   ;;
 
 iterm2)
@@ -161,6 +161,12 @@ exec osascript \\
   exit 1
   ;;
 esac
+
+echo "==> /Applications へ配置"
+# ditto は quarantine 属性も複製するため除去（未除去だと他環境で Gatekeeper に止められうる）
+xattr -dr com.apple.quarantine "$STAGE" 2>/dev/null || true
+rm -rf "$APP"
+mv "$STAGE" "$APP"
 
 echo "==> LaunchServices に登録"
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP"

@@ -9,32 +9,46 @@
 #   <セッション名>  → そのセッションにアタッチ（なければ新規作成）
 HERDR=@HERDR_BIN@
 
+set_title() { printf '\e]0;🐏 %s\a' "$1" }
+
 session=""  # 空 = デフォルトセッション
 while true; do
+  # ウィンドウタイトルに現在のセッション名を表示（herdr はタイトルを設定しないので残り続ける）
+  set_title "${session:-default}"
   if [[ -z "$session" ]]; then
     "$HERDR"
   else
     "$HERDR" --session "$session"
   fi
+  rc=$?
 
   # ここに来るのはデタッチまたは herdr 終了時。
   # TUI が残した端末状態（オルタネートスクリーン・マウスレポート・
   # bracketed paste・カーソル非表示等）をリセットしてからメニューを描く
   stty sane 2>/dev/null || true
   printf '\e[?1049l\e[?1000;1002;1003;1006l\e[?2004l\e[?25h\e[0m'
-  clear
-  print -P "%F{green}── herdr からデタッチしました（セッションはサーバに残っています）──%f"
+  if (( rc == 0 )); then
+    clear
+    print -P "%F{green}── herdr からデタッチしました（セッションはサーバに残っています）──%f"
+  else
+    # 異常終了時はエラーメッセージを消さない
+    print ""
+    print -P "%F{yellow}── herdr が終了しました (exit $rc) ──%f"
+  fi
   print ""
   "$HERDR" session list 2>/dev/null || print "(セッション一覧を取得できませんでした)"
   print ""
   print -P "%B[Enter]%b 閉じる   %B[r]%b 再アタッチ   %B[セッション名]%b そのセッションへ（なければ新規作成）"
-  if ! read -r "choice?herdr > "; then
-    exit 0  # EOF（ウィンドウが閉じられた等）
-  fi
-  case "$choice" in
-    "") exit 0 ;;
-    r|R) ;;  # 同じセッションに再アタッチ
-    default) session="" ;;
-    *) session="$choice" ;;
-  esac
+  while true; do
+    if ! read -r "choice?herdr > "; then
+      exit 0  # EOF（ウィンドウが閉じられた等）
+    fi
+    case "$choice" in
+      "") exit 0 ;;
+      r|R) break ;;  # 同じセッションに再アタッチ
+      default) session=""; break ;;
+      -*) print "セッション名を - で始めることはできません" ;;
+      *) session="$choice"; break ;;
+    esac
+  done
 done
