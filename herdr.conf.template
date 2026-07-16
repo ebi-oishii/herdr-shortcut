@@ -1,0 +1,12 @@
+# Herdr.app 専用の Ghostty 設定（ビルド時に @HERDR_BIN@ が実際のパスに置換される）。
+# -e フラグだと毎回セキュリティ確認ダイアログが出る（Ghostty 1.3 の仕様、無効化不可）ため、
+# 信頼される「設定ファイル由来の command」として herdr を起動する。
+command = @HERDR_BIN@
+macos-icon = custom
+macos-custom-icon = /Applications/Herdr.app/Contents/Resources/herdr-icon.png
+quit-after-last-window-closed = true
+window-save-state = never
+auto-update = off
+# herdr はウィンドウを閉じてもサーバ側にセッションが残る（デタッチと同義）ので
+# 「実行中のプロセスがあります」の閉じる確認は不要
+confirm-close-surface = false

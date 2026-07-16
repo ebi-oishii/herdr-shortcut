@@ -1,0 +1,9 @@
+# 生成物（ビルド時に generate-icons.sh が作る。公式ロゴは再配布回避のため含めない）
+herdr-official-logo.png
+herdr-icon.png
+herdr.icns
+
+# ローカル環境のバックアップ類
+dock-backup-*.plist
+
+.DS_Store
